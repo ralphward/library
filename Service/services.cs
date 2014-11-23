@@ -40,7 +40,7 @@ namespace liberty.library.Service
             return false;
         }
 
-        public bool returnBook(Book i_book)
+        public bool returnBook(Borrowed_Book i_book)
         {
             if (i_book != null)
                 return dl.returnBook(i_book.UID);
@@ -73,12 +73,12 @@ namespace liberty.library.Service
             return (title.Length > 0 && author.Length > 0);
         }
 
-        public List<Book> get_BorrowedBooks()
+        public List<Borrowed_Book> get_BorrowedBooks()
         {
             return dl.borrowedBooks();
         }
 
-        public List<Overdue> overdueBooks()
+        public List<Borrowed_Book> overdueBooks()
         {
             return dl.overdueBooks();
         }

@@ -46,10 +46,10 @@ namespace liberty.library.Data_layer
             {
                 _borrowers = new List<Borrower>()
                 {
-                    new Borrower() {UID = 1, f_name = "Trillian", l_name = "Astra"},
-                    new Borrower() {UID = 2, f_name = "Zaphod", l_name = "Beeblebrox"},
-                    new Borrower() {UID = 3, f_name = "Arthur", l_name = "Dent"},
-                    new Borrower() {UID = 4, f_name = "Ford", l_name = "Prefect"},
+                    new Borrower() {UID = 1, first_name = "Trillian", last_name = "Astra"},
+                    new Borrower() {UID = 2, first_name = "Zaphod", last_name = "Beeblebrox"},
+                    new Borrower() {UID = 3, first_name = "Arthur", last_name = "Dent"},
+                    new Borrower() {UID = 4, first_name = "Ford", last_name = "Prefect"},
                 };
 
                 _books = new List<Book>()
@@ -61,6 +61,7 @@ namespace liberty.library.Data_layer
                     new Book() {UID = 5, author = "Douglas Adams", title = "Mostly harmless", dt_borrowed = default(DateTime), borrower_UID = -1},
                     new Book() {UID = 6, author = "Eoin Colfer", title = "And another thing", dt_borrowed = default(DateTime), borrower_UID = -1},
                 };
+                
 
             }
             catch (Exception ex)
@@ -104,8 +105,8 @@ namespace liberty.library.Data_layer
                 _borrowers.Add(new Borrower
                 {
                     UID = i,
-                    f_name = l_f_name,
-                    l_name = l_l_name
+                    first_name = l_f_name,
+                    last_name = l_l_name
                 });
 
             }
@@ -163,39 +164,18 @@ namespace liberty.library.Data_layer
             }
         }
 
-        public bool returnBook(int l_borrower, int l_book)
-        {
-            try
-            {
-                Book b =
-                    (from Book in _books
-                     where Book.UID == l_book
-                     && Book.borrower_UID == l_borrower
-                     select Book).SingleOrDefault();
-
-                b.borrower_UID = -1;
-                b.dt_borrowed = default(DateTime);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                // Log the exception and let the user know it failed
-                Console.WriteLine(ex.GetType().FullName);
-                Console.WriteLine(ex.Message);
-                return false;
-            }
-        }
 
         public List<Book> searchBooks(string search_key)
         {
             List<Book> s_books = new List<Book> { };
             try
             {
-                // allow fuzzy search - heavy perfomance sacrifice
-                string[] filters = search_key.Split(new[] { ' ' });
+                // fuzzy search with heavy perfomance sacrifice - this could be improved a lot
+                // TODO:: Should do some more on the search_key not being malicious
+                string[] filters = search_key.ToLower().Split(new[] { ' ' });
 
                 var l_books = (from Book in _books
-                               where filters.All(f => Book.author.Contains(f) || Book.title.Contains(f))
+                               where filters.All(f => Book.author.ToLower().Contains(f) || Book.title.ToLower().Contains(f))
                                select Book);
 
                 foreach (Book l_book in l_books)
@@ -238,9 +218,9 @@ namespace liberty.library.Data_layer
             }
         }
 
-        public List<Book> borrowedBooks()
+        public List<Borrowed_Book> borrowedBooks()
         {
-            List<Book> l_available = new List<Book> { };
+            List<Borrowed_Book> l_available = new List<Borrowed_Book> { };
             try
             {
                 var available_list = (from Book in _books
@@ -249,7 +229,11 @@ namespace liberty.library.Data_layer
 
                 foreach (var available in available_list)
                 {
-                    l_available.Add(available);
+                    var o_borrower = (from Borrower in _borrowers
+                                      where Borrower.UID == available.borrower_UID
+                                      select Borrower);
+
+                    l_available.Add(new Borrowed_Book(available, o_borrower.First()));
                 }
 
                 return l_available;
@@ -262,26 +246,25 @@ namespace liberty.library.Data_layer
             }
         }
 
-        public List<Overdue> overdueBooks()
+        public List<Borrowed_Book> overdueBooks()
         {
-            List<Overdue> o_due = new List<Overdue> { };
+            List<Borrowed_Book> o_due = new List<Borrowed_Book> { };
 
             try
             {
                 var overdue_list = (from Book in _books
                                     where Book.dt_borrowed < DateTime.Now.AddDays(-7)
+                                    && Book.borrower_UID != -1
                                     orderby Book.UID
                                     select Book);
                 foreach (var overdue_item in overdue_list)
                 {
                     var o_borrower = (from Borrower in _borrowers
                                       where Borrower.UID == overdue_item.borrower_UID
-                                      select Borrower).Distinct();
+                                      select Borrower);
 
-                    o_due.Add(new Overdue(){
-                            late_book = overdue_item,
-                            late_borrower = o_borrower.First()
-                            });
+                    o_due.Add(new Borrowed_Book(overdue_item,o_borrower.First()));
+
 
                 }
 
@@ -310,15 +293,30 @@ namespace liberty.library.Data_layer
     public class Borrower
     {
         public int UID { get; set; }
-        public string f_name { get; set; }
-        public string l_name { get; set; }
+        public string first_name { get; set; }
+        public string last_name { get; set; }
 
     }
 
-    public class Overdue
+    public class Borrowed_Book
     {
-        public Book late_book { get; set; }
-        public Borrower late_borrower { get; set; }
+
+        public int UID { get; set; }
+        public string title { get; set; }
+        public string author { get; set; }
+        public string first_name { get; set; }
+        public string last_name { get; set; }
+
+        public Borrowed_Book(Book _book, Borrower _borrower)
+        {
+            UID = _book.UID;
+            title = _book.title;
+            author = _book.author;
+            first_name = _borrower.first_name;
+            last_name = _borrower.last_name;
+
+            
+        }
     }
 
 }
