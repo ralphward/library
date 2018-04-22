@@ -1,4 +1,4 @@
 # library
-very small library app using XAML and WPF
+very small library book borrowing application using XAML and WPF
 
-This was just a small mess around to explore XAML and WPF
+Wrote this just to try and learn a bit more about XAML and WPF. No persistent Data Layer
